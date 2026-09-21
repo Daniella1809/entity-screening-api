@@ -4,6 +4,8 @@ REST API en .NET 8 que busca entidades por nombre en listas de alto riesgo (sanc
 
 La fuente implementada es OFAC - Sanctions List Search (Departamento del Tesoro de EE. UU.). La arquitectura permite agregar otras fuentes implementando una interfaz.
 
+API en vivo (Azure): https://entity-screening-daniella.azurewebsites.net (Swagger en `/swagger`).
+
 ## Requisitos
 
 - .NET 8 SDK
@@ -131,3 +133,30 @@ En `postman/`:
 - `EntityScreeningAPI.local.postman_environment.json`
 
 Importar ambos en Postman, seleccionar el entorno local y ejecutar los requests.
+
+Para probar contra la API en vivo, cambiar la variable `baseUrl` a `https://entity-screening-daniella.azurewebsites.net`.
+
+## Despliegue en Azure
+
+Desplegado en Azure App Service (plan gratuito F1) usando Azure Cloud Shell:
+
+```bash
+git clone https://github.com/Daniella1809/entity-screening-api.git
+cd entity-screening-api
+
+RG="rg-entity-screening"
+PLAN="plan-entity-screening"
+APP="entity-screening-daniella"
+LOCATION="westus"
+
+az group create --name $RG --location $LOCATION
+az appservice plan create --name $PLAN --resource-group $RG --sku F1 --location $LOCATION
+az webapp create --name $APP --resource-group $RG --plan $PLAN --runtime "DOTNETCORE:8.0"
+az webapp config appsettings set --name $APP --resource-group $RG --settings API_KEY="una-clave-secreta"
+
+dotnet publish src/EntityScreening.Api -c Release -o ./publish
+cd publish && zip -r ../app.zip . && cd ..
+az webapp deploy --name $APP --resource-group $RG --src-path app.zip --type zip
+```
+
+La API Key en producción se define con la variable de entorno `API_KEY` (app setting), no en `appsettings.json`.
