@@ -1,0 +1,190 @@
+{
+  "info": {
+    "name": "Entity Screening API",
+    "_postman_id": "b1f3c2a4-0d1e-4a2b-9c8d-entityscreen01",
+    "description": "Colección para probar la Entity Screening API. Variables: baseUrl y apiKey (configurables en la pestaña Variables).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5080",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "dev-local-api-key-change-me",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health check (público)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Verifica que la API está en ejecución. No requiere API Key."
+      },
+      "response": []
+    },
+    {
+      "name": "Listar fuentes disponibles",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-API-Key", "value": "{{apiKey}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/sources",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "sources"]
+        },
+        "description": "Devuelve las claves de fuentes registradas que pueden usarse en el parámetro 'source'."
+      },
+      "response": []
+    },
+    {
+      "name": "Buscar entidad - OFAC (cuba)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Tiene número de hits', () => pm.expect(body).to.have.property('hits'));",
+              "pm.test('Tiene arreglo de resultados', () => pm.expect(body.results).to.be.an('array'));",
+              "pm.test('Fuente es ofac', () => pm.expect(body.source).to.eql('ofac'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-API-Key", "value": "{{apiKey}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/search?name=cuba&source=ofac",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "search"],
+          "query": [
+            { "key": "name", "value": "cuba" },
+            { "key": "source", "value": "ofac" }
+          ]
+        },
+        "description": "Búsqueda válida en OFAC. Devuelve el número de hits y un arreglo de resultados con los atributos: Name, Address, Type, Program(s), List, Score, DetailsUrl."
+      },
+      "response": []
+    },
+    {
+      "name": "Buscar entidad - OFAC (bank, source por defecto)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-API-Key", "value": "{{apiKey}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/search?name=bank",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "search"],
+          "query": [
+            { "key": "name", "value": "bank" }
+          ]
+        },
+        "description": "Si no se especifica 'source', se usa 'ofac' por defecto."
+      },
+      "response": []
+    },
+    {
+      "name": "Error - sin API Key (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 401', () => pm.response.to.have.status(401));",
+              "pm.test('Error missing_api_key', () => pm.expect(pm.response.json().error).to.eql('missing_api_key'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/search?name=cuba",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "search"],
+          "query": [
+            { "key": "name", "value": "cuba" }
+          ]
+        },
+        "description": "Sin el header X-API-Key la API responde 401."
+      },
+      "response": []
+    },
+    {
+      "name": "Error - API Key inválida (401)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-API-Key", "value": "clave-incorrecta" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/search?name=cuba",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "search"],
+          "query": [
+            { "key": "name", "value": "cuba" }
+          ]
+        },
+        "description": "Una API Key que no coincide con la configurada devuelve 401 invalid_api_key."
+      },
+      "response": []
+    },
+    {
+      "name": "Error - sin parámetro name (400)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-API-Key", "value": "{{apiKey}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/search",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "search"]
+        },
+        "description": "El parámetro 'name' es obligatorio. Su ausencia devuelve 400 validation_error."
+      },
+      "response": []
+    },
+    {
+      "name": "Error - fuente inexistente (400)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-API-Key", "value": "{{apiKey}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/search?name=test&source=inexistente",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "search"],
+          "query": [
+            { "key": "name", "value": "test" },
+            { "key": "source", "value": "inexistente" }
+          ]
+        },
+        "description": "Una fuente no registrada devuelve 400 source_not_found con la lista de fuentes disponibles."
+      },
+      "response": []
+    }
+  ]
+}
